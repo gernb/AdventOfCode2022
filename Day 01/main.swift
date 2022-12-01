@@ -9,17 +9,14 @@
 
 print("Day 01:")
 
-enum Part1 {
-    struct Elf {
-        var items: [Int] = []
+struct Elf {
+    var items: [Int] = []
 
-        var totalCalories: Int {
-            items.reduce(0, +)
-        }
+    var totalCalories: Int {
+        items.reduce(0, +)
     }
 
-    static func run(_ source: InputData) {
-        let input = source.data
+    static func elves(from input: [String]) -> [Elf] {
         var elves: [Elf] = []
 
         var elf = Elf()
@@ -37,6 +34,15 @@ enum Part1 {
             elves.append(elf)
         }
 
+        return elves
+    }
+}
+
+enum Part1 {
+    static func run(_ source: InputData) {
+        let input = source.data
+        let elves = Elf.elves(from: input)
+
         let maxCalories = elves.max(by: { $0.totalCalories < $1.totalCalories })!.totalCalories
 
         print("Part 1 (\(source)): \(maxCalories)")
@@ -52,8 +58,12 @@ print("")
 enum Part2 {
     static func run(_ source: InputData) {
         let input = source.data
+        let elves = Elf.elves(from: input)
 
-        print("Part 2 (\(source)):")
+        let topThree = elves.sorted(by: { $0.totalCalories > $1.totalCalories }).prefix(3)
+        let total = topThree.map(\.totalCalories).reduce(0, +)
+
+        print("Part 2 (\(source)): \(total)")
     }
 }
 
