@@ -52,6 +52,11 @@ struct Round {
         player.shapeScore + outcomeScore
     }
 
+    init(player: Move, opponent: Move) {
+        self.player = player
+        self.opponent = opponent
+    }
+
     init(line: String) {
         let parts = line.components(separatedBy: " ")
         self.opponent = Move.move(for: parts[0])
@@ -75,11 +80,47 @@ InputData.allCases.forEach(Part1.run)
 
 print("")
 
+enum Result: String {
+    case lose = "X"
+    case draw = "Y"
+    case win = "Z"
+}
+
+extension Move {
+    func move(for result: Result) -> Move {
+        switch (self, result) {
+        case (.rock, .lose): return .scissors
+        case (.rock, .draw): return .rock
+        case (.rock, .win): return .paper
+
+        case (.paper, .lose): return .rock
+        case (.paper, .draw): return .paper
+        case (.paper, .win): return .scissors
+
+        case (.scissors, .lose): return .paper
+        case (.scissors, .draw): return .scissors
+        case (.scissors, .win): return .rock
+        }
+    }
+}
+
+extension Round {
+    static func part2(line: String) -> Round {
+        let parts = line.components(separatedBy: " ")
+        let opponent = Move.move(for: parts[0])
+        let result = Result(rawValue: parts[1])!
+        let player = opponent.move(for: result)
+        return Round(player: player, opponent: opponent)
+    }
+}
+
 enum Part2 {
     static func run(_ source: InputData) {
         let input = source.data
+        let rounds = input.map(Round.part2(line:))
+        let total = rounds.map(\.score).reduce(0, +)
 
-        print("Part 2 (\(source)):")
+        print("Part 2 (\(source)): \(total)")
     }
 }
 
