@@ -55,13 +55,34 @@ InputData.allCases.forEach(Part1.run)
 
 // MARK: - Part 2
 
+extension Array {
+    func chunked(into size: Int) -> [[Element]] {
+        return stride(from: 0, to: count, by: size).map {
+            Array(self[$0 ..< Swift.min($0 + size, count)])
+        }
+    }
+}
+
+extension Rucksack {
+    var itemSet: Set<ItemType> {
+        Set(compartments[0]).union(Set(compartments[1]))
+    }
+
+    static func commonItem(_ group: [Rucksack]) -> ItemType {
+        group.reduce(group[0].itemSet, { $0.intersection($1.itemSet) }).first!
+    }
+}
+
 print("")
 
 enum Part2 {
     static func run(_ source: InputData) {
         let input = source.data
+        let groups = input.map(Rucksack.init(line:)).chunked(into: 3)
+        let commonItems = groups.map(Rucksack.commonItem(_:))
+        let total = commonItems.map(\.priority).reduce(0, +)
 
-        print("Part 2 (\(source)):")
+        print("Part 2 (\(source)): \(total)")
     }
 }
 
