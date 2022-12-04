@@ -53,8 +53,10 @@ print("")
 enum Part2 {
     static func run(_ source: InputData) {
         let input = source.data
+        let pairs = input.map(Cleanup.init(line:))
+        let count = pairs.filter({ $0.elf1.overlaps($0.elf2) }).count
 
-        print("Part 2 (\(source)):")
+        print("Part 2 (\(source)): \(count)")
     }
 }
 
