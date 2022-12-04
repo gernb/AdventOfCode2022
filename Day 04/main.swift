@@ -10,7 +10,7 @@ typealias Assignment = ClosedRange<Int>
 extension Assignment {
     init(string: String) {
         let ends = string.components(separatedBy: "-").compactMap(Int.init)
-        self = ends[0] ... ends [1]
+        self = ends[0] ... ends[1]
     }
 }
 
