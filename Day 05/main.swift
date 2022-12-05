@@ -77,13 +77,27 @@ InputData.allCases.forEach(Part1.run)
 
 // MARK: - Part 2
 
+extension Stacks {
+    mutating func perform2(move: Move) {
+        let crates = self[move.from - 1].suffix(move.count)
+        self[move.from - 1] = self[move.from - 1].dropLast(move.count)
+        self[move.to - 1].append(contentsOf: crates)
+    }
+}
+
 print("")
 
 enum Part2 {
     static func run(_ source: InputData) {
         let input = source.data
+        let splitIndex = input.firstIndex(of: "")!
+        var stacks = Stacks(input: input[0 ..< splitIndex])
+        let moves = input.dropFirst(splitIndex + 1).map(Move.init(input:))
 
-        print("Part 2 (\(source)):")
+        moves.forEach { stacks.perform2(move: $0) }
+        let result = stacks.map(\.last!).joined()
+
+        print("Part 2 (\(source)): \(result)")
     }
 }
 
