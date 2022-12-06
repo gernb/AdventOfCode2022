@@ -13,7 +13,13 @@ enum Part1 {
     static func run(_ source: InputData) {
         let input = source.data
 
-        print("Part 1 (\(source)):")
+        for index in 3 ..< input.count {
+            let slice = Set(input[(index - 3) ... index])
+            if slice.count == 4 {
+                print("Part 1 (\(source)): \(index + 1)")
+                return
+            }
+        }
     }
 }
 
