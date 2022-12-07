@@ -134,10 +134,32 @@ InputData.allCases.forEach(Part1.run)
 print("")
 
 enum Part2 {
+    static let totalDiskSpace = 70_000_000
+    static let minFree = 30_000_000
+
+    static func directories(over size: Int, startingFrom directory: Directory) -> [Directory] {
+        let subdirs = directory.directories.flatMap { directories(over: size, startingFrom: $0) }
+        if directory.size >= size {
+            return [directory] + subdirs
+        } else {
+            return subdirs
+        }
+    }
+
     static func run(_ source: InputData) {
         let input = source.data
+        let commands = Command.parse(input)
+        let root = Directory(name: "/")
+        commands.execute(with: root)
 
-        print("Part 2 (\(source)):")
+        let used = root.size
+        let unused = totalDiskSpace - used
+        let needed = minFree - unused
+
+        let candidates = directories(over: needed, startingFrom: root)
+        let best = candidates.min(by: { $0.size < $1.size })!
+
+        print("Part 2 (\(source)): \(best.name) - \(best.size)")
     }
 }
 
