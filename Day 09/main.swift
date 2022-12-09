@@ -106,9 +106,22 @@ print("")
 
 enum Part2 {
     static func run(_ source: InputData) {
-        let input = source.data
+        let moves = source.data.map(Move.init(line:))
+        var knots: [Position] = .init(repeating: .origin, count: 10)
+        var visited: Set<Position> = [.origin]
 
-        print("Part 2 (\(source)):")
+        for move in moves {
+            for _ in 1 ... move.count {
+                knots[0].move(move.direction)
+                for index in (1 ..< knots.count) {
+                    knots[index].move(following: knots[index - 1])
+                }
+                visited.insert(knots.last!)
+            }
+        }
+
+        let count = visited.count
+        print("Part 2 (\(source)): \(count)")
     }
 }
 
