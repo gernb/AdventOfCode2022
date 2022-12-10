@@ -65,6 +65,8 @@ enum Part1 {
 
 InputData.allCases.forEach(Part1.run)
 
+// MARK: - Part 2
+
 struct Sprite {
     let center: Int
 
@@ -92,8 +94,6 @@ struct CRT {
         print("")
     }
 }
-
-// MARK: - Part 2
 
 print("")
 
