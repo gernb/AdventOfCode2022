@@ -13,7 +13,7 @@ typealias Stacks = Array<Stack>
 
 extension Stacks {
     init(input: ArraySlice<String>) {
-        let count = Int(input.last!.components(separatedBy: " ").last!)!
+        let count = Int(input.last!.trimmingCharacters(in: .whitespaces).components(separatedBy: " ").last!)!
         var stacks = Self.init(repeating: [], count: count)
         for line in input.dropLast().reversed() {
             for (position, crate) in line.map(String.init).chunked(into: 4).enumerated() {

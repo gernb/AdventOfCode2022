@@ -174,6 +174,7 @@ noop
 
         case .challenge:
             return try! String(contentsOfFile: ("~/Desktop/input.txt" as NSString).expandingTildeInPath)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
 
         }
     }
