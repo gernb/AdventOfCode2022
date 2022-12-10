@@ -76,9 +76,9 @@ struct Sprite {
 struct CRT {
     var pixels: [Bool] = .init(repeating: false, count: 40 * 6)
 
-    mutating func setPixel(cycle: Int, sprint: Sprite) {
+    mutating func setPixel(cycle: Int, sprite: Sprite) {
         let rowPosition = (cycle - 1) % 40
-        pixels[cycle - 1] = sprint.pixels.contains(rowPosition)
+        pixels[cycle - 1] = sprite.pixels.contains(rowPosition)
     }
 
     func draw() {
@@ -108,11 +108,11 @@ enum Part2 {
             cycles += instruction.cycles
             switch instruction {
             case .noop:
-                crt.setPixel(cycle: cycles, sprint: .init(center: register))
+                crt.setPixel(cycle: cycles, sprite: .init(center: register))
             case .addx(let value):
                 let sprite = Sprite(center: register)
-                crt.setPixel(cycle: cycles - 1, sprint: sprite)
-                crt.setPixel(cycle: cycles, sprint: sprite)
+                crt.setPixel(cycle: cycles - 1, sprite: sprite)
+                crt.setPixel(cycle: cycles, sprite: sprite)
                 register += value
             }
         }
