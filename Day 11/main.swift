@@ -101,13 +101,39 @@ InputData.allCases.forEach(Part1.run)
 
 // MARK: - Part 2
 
+extension Monkey {
+    func turn2(with monkeys: [Monkey], magicNumber: Int) {
+        while items.isEmpty == false {
+            inspectionCount += 1
+            var item = items.removeFirst()
+            item = item % magicNumber
+            item = operation.execute(with: item)
+            let id = item % test == 0 ? testTrue : testFalse
+            let destination = monkeys.first { $0.id == id }!
+            destination.items.append(item)
+        }
+    }
+}
+
 print("")
 
 enum Part2 {
     static func run(_ source: InputData) {
-        let input = source.data
+        let monkeys = source.data.split(separator: "")
+            .map(Array.init)
+            .map(Monkey.init(lines:))
 
-        print("Part 2 (\(source)):")
+        let magicNumber = monkeys.map(\.test).reduce(1, *)
+
+        for _ in 1 ... 10_000 {
+            monkeys.forEach { monkey in
+                monkey.turn2(with: monkeys, magicNumber: magicNumber)
+            }
+        }
+
+        let top2 = monkeys.map(\.inspectionCount).sorted(by: >).prefix(2)
+
+        print("Part 2 (\(source)): \(top2[0] * top2[1])")
     }
 }
 
