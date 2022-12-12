@@ -14,10 +14,17 @@ enum InputData: String, CaseIterable {
         switch self {
 
         case .example: return """
+Sabqponm
+abcryxxl
+accszExk
+acctuvwj
+abdefghi
 """.components(separatedBy: .newlines)
 
-        case .challenge: return """
-""".components(separatedBy: .newlines)
+        case .challenge:
+            return try! String(contentsOfFile: ("~/Desktop/input.txt" as NSString).expandingTildeInPath)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .components(separatedBy: .newlines)
 
         }
     }
