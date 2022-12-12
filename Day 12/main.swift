@@ -116,13 +116,41 @@ InputData.allCases.forEach(Part1.run)
 
 // MARK: - Part 2
 
+extension Map {
+    static let lowestHeight = Int(Character("a").asciiValue!)
+
+    var allStartingPositions: [Position] {
+        heights.enumerated().flatMap { row, line in
+            line.enumerated().compactMap { column, height in
+                guard height == Self.lowestHeight else { return nil }
+                return Position(x: column, y: row)
+            }
+        }
+    }
+}
+
 print("")
 
 enum Part2 {
     static func run(_ source: InputData) {
-        let input = source.data
+        let map = Map(input: source.data)
+        let paths = map.allStartingPositions.compactMap { start in
+            findShortestPath(from: start) { currentPosition in
+                if currentPosition == map.goal {
+                    return nil
+                }
+                let currentHeight = map.height(at: currentPosition)!
+                return currentPosition.neighbours.compactMap { position in
+                    guard let height = map.height(at: position) else { return nil }
+                    guard (height - 1) <= currentHeight else { return nil }
+                    return position
+                }
+            }
+        }
 
-        print("Part 2 (\(source)):")
+        let shortest = paths.map(\.count).min()!
+
+        print("Part 2 (\(source)): \(shortest)")
     }
 }
 
