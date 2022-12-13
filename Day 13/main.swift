@@ -105,11 +105,26 @@ InputData.allCases.forEach(Part1.run)
 
 // MARK: - Part 2
 
+extension Packet: Equatable {}
+
 enum Part2 {
     static func run(_ source: InputData) {
-        let input = source.data
+        let dividerPackets = ["[[2]]", "[[6]]"].map {
+            var line = Array($0)[...]
+            return Packet(&line)
+        }
+        let packets = source.data.compactMap { line -> Packet? in
+            guard line.isEmpty == false else { return nil }
+            var line = Array(line)[...]
+            return Packet(&line)
+        }
+        let sorted = (packets + dividerPackets).sorted { lhs, rhs in
+            return Packet.compare(lhs: lhs, rhs: rhs) == .orderedAscending
+        }
+        let start = sorted.firstIndex(of: dividerPackets[0])! + 1
+        let end = sorted.firstIndex(of: dividerPackets[1])! + 1
 
-        print("Part 2 (\(source)):")
+        print("Part 2 (\(source)): \(start * end)")
     }
 }
 
