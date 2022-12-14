@@ -146,11 +146,47 @@ InputData.allCases.forEach(Part1.run)
 
 // MARK: - Part 2
 
-enum Part2 {
-    static func run(_ source: InputData) {
-        let input = source.data
+extension Dictionary where Key == Point, Value == Tile {
+    var lowestRock: Int {
+        self.filter { $0.value == .rock }
+            .keys
+            .map(\.y)
+            .max()!
+    }
+}
 
-        print("Part 2 (\(source)):")
+enum Part2 {
+    // returns true if sand came to rest on the map, or false if stayed at the origin
+    static func produceUnitOfSand(tiles: inout [Point: Tile], floor: Int) -> Bool {
+        var sand = Point.origin
+        while true {
+            if sand.down.y == floor {
+                tiles[sand] = .sand
+                return true
+            }
+            if tiles[sand.down, default: .air] == .air {
+                sand = sand.down
+            } else if tiles[sand.downLeft, default: .air] == .air {
+                sand = sand.downLeft
+            } else if tiles[sand.downRight, default: .air] == .air {
+                sand = sand.downRight
+            } else {
+                tiles[sand] = .sand
+                return sand != .origin
+            }
+        }
+    }
+
+    static func run(_ source: InputData) {
+        var tiles = inputToTiles(source.data)
+        let floor = tiles.lowestRock + 2
+        var keepProducing = true
+        while keepProducing {
+            keepProducing = produceUnitOfSand(tiles: &tiles, floor: floor)
+        }
+        let count = tiles.values.filter { $0 == .sand }.count
+
+        print("Part 2 (\(source)): \(count)")
     }
 }
 
