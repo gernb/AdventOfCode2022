@@ -77,10 +77,6 @@ extension Dictionary where Key == Point {
             print("")
         }
     }
-
-    func isInRange(_ key: Key) -> Bool {
-        xRange.contains(key.x) && yRange.contains(key.y)
-    }
 }
 
 enum Tile: String, CustomStringConvertible {
@@ -106,7 +102,7 @@ func inputToTiles(_ input: [String]) -> [Point: Tile] {
 
 enum Part1 {
     // returns true if sand came to rest on the map, or false if it falls into the void
-    static func produceUnitOfSand(tiles: inout [Point: Tile]) -> Bool {
+    static func produceUnitOfSand(tiles: inout [Point: Tile], extents: (x: ClosedRange<Int>, y: ClosedRange<Int>)) -> Bool {
         var sand = Point.origin
         while true {
             if tiles[sand.down, default: .air] == .air {
@@ -116,14 +112,16 @@ enum Part1 {
             } else if tiles[sand.downRight, default: .air] == .air {
                 sand = sand.downRight
             } else {
-                if tiles.isInRange(sand) {
+                if extents.x.contains(sand.x) && extents.y.contains(sand.y) {
                     tiles[sand] = .sand
                     return true
                 } else {
                     return false
                 }
             }
-            if tiles.isInRange(sand) == false {
+            if extents.x.contains(sand.x) && extents.y.contains(sand.y) {
+                continue
+            } else {
                 return false
             }
         }
@@ -131,9 +129,10 @@ enum Part1 {
 
     static func run(_ source: InputData) {
         var tiles = inputToTiles(source.data)
+        let extents = (tiles.xRange, tiles.yRange)
         var keepProducing = true
         while keepProducing {
-            keepProducing = produceUnitOfSand(tiles: &tiles)
+            keepProducing = produceUnitOfSand(tiles: &tiles, extents: extents)
         }
         let count = tiles.values.filter { $0 == .sand }.count
 
