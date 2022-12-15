@@ -130,15 +130,56 @@ enum Part1 {
 }
 
 print("Day 15:")
-InputData.allCases.forEach(Part1.run)
+//InputData.allCases.forEach(Part1.run)
 
 // MARK: - Part 2
 
 enum Part2 {
     static func run(_ source: InputData) {
-        let input = source.data
+        let (pairs, map) = parseInput(source.data)
+        let keys = Set(map.keys)
+        var beacon: Position?
+        for pair in pairs {
+            let radius = pair.distance + 1
+            var position = Position(x: pair.sensor.x, y: pair.sensor.y - radius)
+            var keypath = \Position.downRight
+            while beacon == nil {
+                if position.y == pair.sensor.y && keypath == \Position.downRight {
+                    keypath = \Position.downLeft
+                } else if position.x == pair.sensor.x && keypath == \Position.downLeft {
+                    keypath = \Position.upLeft
+                } else if position.y == pair.sensor.y && keypath == \Position.upLeft {
+                    keypath = \Position.upRight
+                } else if position.x == pair.sensor.x && keypath == \Position.upRight {
+                    break
+                }
+                guard position.x >= 0 && position.x <= source.max &&
+                        position.y >= 0 && position.y <= source.max else {
+                    position = position[keyPath: keypath]
+                    continue
+                }
+                guard keys.contains(position) == false else {
+                    position = position[keyPath: keypath]
+                    continue
+                }
+                var isPossibleLocation = true
+                for otherPair in pairs {
+                    if otherPair.insideRadius(position) {
+                        isPossibleLocation = false
+                        break
+                    }
+                }
+                if isPossibleLocation {
+                    beacon = position
+                } else {
+                    position = position[keyPath: keypath]
+                }
+            }
+            if beacon != nil { break }
+        }
+        let tuningFrequency = beacon!.x * 4_000_000 + beacon!.y
 
-        print("Part 2 (\(source)):")
+        print("Part 2 (\(source)): \(tuningFrequency)")
     }
 }
 

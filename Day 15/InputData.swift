@@ -17,6 +17,13 @@ enum InputData: String, CaseIterable {
         }
     }
 
+    var max: Int {
+        switch self {
+        case .example: return 20
+        case .challenge: return 4_000_000
+        }
+    }
+
     var data: [String] {
         switch self {
 
