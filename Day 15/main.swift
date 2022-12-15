@@ -130,7 +130,7 @@ enum Part1 {
 }
 
 print("Day 15:")
-//InputData.allCases.forEach(Part1.run)
+InputData.allCases.forEach(Part1.run)
 
 // MARK: - Part 2
 
