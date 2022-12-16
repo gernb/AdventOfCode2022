@@ -86,7 +86,7 @@ InputData.allCases.forEach(Part1.run)
 
 // MARK: - Part 2
 
-final class Circumference: Sequence, IteratorProtocol {
+struct Circumference: Sequence, IteratorProtocol {
     let center: Position
     let radius: Int
 
@@ -101,7 +101,7 @@ final class Circumference: Sequence, IteratorProtocol {
         self.keypath = \Position.downRight
     }
 
-    func next() -> Position? {
+    mutating func next() -> Position? {
         if position.y == center.y && keypath == \Position.downRight {
             keypath = \Position.downLeft
         } else if position.x == center.x && keypath == \Position.downLeft {
