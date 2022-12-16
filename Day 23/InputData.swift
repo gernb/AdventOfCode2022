@@ -8,6 +8,8 @@
 import Foundation
 
 enum InputData: String, CaseIterable {
+    static let day = 23
+
     case example, challenge
 
     var data: [String] {
@@ -16,8 +18,10 @@ enum InputData: String, CaseIterable {
         case .example: return """
 """.components(separatedBy: .newlines)
 
-        case .challenge: return """
-""".components(separatedBy: .newlines)
+        case .challenge:
+            return try! String(contentsOfFile: ("~/Desktop/input.txt" as NSString).expandingTildeInPath)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .components(separatedBy: .newlines)
 
         }
     }

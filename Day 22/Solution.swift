@@ -1,13 +1,11 @@
 //
-//  main.swift
-//  Day 25
+//  Solution.swift
+//  Day 22
 //
 //  Copyright © 2022 peter bohac. All rights reserved.
 //
 
 // MARK: - Part 1
-
-print("Day 25:")
 
 enum Part1 {
     static func run(_ source: InputData) {
@@ -17,11 +15,7 @@ enum Part1 {
     }
 }
 
-InputData.allCases.forEach(Part1.run)
-
 // MARK: - Part 2
-
-print("")
 
 enum Part2 {
     static func run(_ source: InputData) {
@@ -30,5 +24,3 @@ enum Part2 {
         print("Part 2 (\(source)):")
     }
 }
-
-InputData.allCases.forEach(Part2.run)
