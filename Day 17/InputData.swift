@@ -12,10 +12,15 @@ enum InputData: String, CaseIterable {
 
     case example, challenge
 
-    var data: [String] {
+    var data: Array<Character> {
+        Array(self.lines[0])
+    }
+
+    var lines: [String] {
         switch self {
 
         case .example: return """
+>>><<><>><<<>><>>><<<>>><<<><<<>><>><<>>
 """.components(separatedBy: .newlines)
 
         case .challenge:
