@@ -143,10 +143,66 @@ enum Part1 {
 
 // MARK: - Part 2
 
+extension Collection {
+    func combinations(of size: Int) -> [[Element]] {
+        func pick(_ count: Int, from: ArraySlice<Element>) -> [[Element]] {
+            guard count > 0 else { return [] }
+            guard count < from.count else { return [Array(from)] }
+            if count == 1 {
+                return from.map { [$0] }
+            } else {
+                return from.dropLast(count - 1)
+                    .enumerated()
+                    .flatMap { pair in
+                        return pick(count - 1, from: from.dropFirst(pair.offset + 1)).map { [pair.element] + $0 }
+                    }
+            }
+        }
+
+        return pick(size, from: ArraySlice(self))
+    }
+}
+
 enum Part2 {
     static func run(_ source: InputData) {
-        let input = source.data
+        let pipes = Pipes(valves: source.data.map(Valve.init(line:)))
+        let begin = pipes.valves["AA"]!
 
-        print("Part 2 (\(source)):")
+        var results = pipes.valvesWithPositiveFlows
+            .combinations(of: pipes.valvesWithPositiveFlows.count / 2)
+            .flatMap { valveSet in
+                let start = State(time: 26, location: begin, remaining: Set(valveSet))
+                let paths = findAllPaths(from: start) { state in
+                    state.remaining.compactMap { next in
+                        let distance = pipes.distance[[state.location, next]]!
+                        guard distance < state.time else { return nil }
+                        var remaining = state.remaining
+                        remaining.remove(next)
+                        return State(time: state.time - distance, location: next, remaining: remaining)
+                    }
+                }
+                let totals = paths.map { path in
+                    var time = 26
+                    var total = 0
+                    var start = begin
+                    for state in path {
+                        total += pipes.moveAndOpen(from: start, to: state.location, time: &time)
+                        start = state.location
+                    }
+                    return total
+                }
+                return zip(paths.map { Set($0.map(\.location)) }, totals)
+            }
+        results.sort { $0.1 > $1.1 }
+
+        var largest = 0
+        for one in results.prefix(100) {
+            for two in results {
+                guard one.0.isDisjoint(with: two.0) else { continue }
+                largest = max(one.1 + two.1, largest)
+                break
+            }
+        }
+        print("Part 2 (\(source)): \(largest)")
     }
 }
