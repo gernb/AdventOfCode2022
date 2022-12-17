@@ -54,14 +54,14 @@ struct Rocks: Sequence, IteratorProtocol {
 
 // MARK: - Part 1
 
-struct Vault {
+struct Chamber {
     let emptyRow = Array(repeating: " ", count: 7)
     var jets: Jets
     var rocks = Rocks()
-    var vault: [Int: [String]] = [:]
+    var tower: [Int: [String]] = [:]
 
     var height: Int {
-        vault.keys.max()! + 1
+        (tower.keys.max() ?? -1) + 1
     }
 
     init(_ jets: Array<Character>) {
@@ -69,60 +69,58 @@ struct Vault {
     }
 
     func draw() -> [String] {
-        let top = vault.keys.max() ?? 0
-        return (0 ... top).reversed().map { row in
-            vault[row, default: emptyRow].joined()
+        (0 ..< height).reversed().map { row in
+            tower[row, default: emptyRow].joined()
         }
     }
 
     mutating func dropRock() {
         let shape = rocks.next()!.shape
-        var bottom = (vault.keys.max() ?? -1) + 4
-        var top = bottom + shape.count - 1
+        var top = (height + 3) + (shape.count - 1)
         shape.enumerated().forEach { index, line in
-            vault[top - index] = line
+            tower[top - index] = line
         }
         var canMoveDown = true
         while canMoveDown {
             switch jets.next()! {
             case .left:
                 let canMove = shape.indices.allSatisfy { index in
-                    let line = vault[top - index]!
+                    let line = tower[top - index]!
                     let leftIndex = line.firstIndex(of: "#")!
                     return leftIndex > 0 && line[leftIndex - 1] == " "
                 }
                 if canMove {
                     shape.indices.forEach { rowIndex in
-                        var line = vault[top - rowIndex]!
+                        var line = tower[top - rowIndex]!
                         for index in 1 ..< 7 {
                             guard line[index] == "#" else { continue }
                             line[index - 1] = "#"
                             line[index] = " "
                         }
-                        vault[top - rowIndex] = line
+                        tower[top - rowIndex] = line
                     }
                 }
             case .right:
                 let canMove = shape.indices.allSatisfy { index in
-                    let line = vault[top - index]!
+                    let line = tower[top - index]!
                     let rightIndex = line.lastIndex(of: "#")!
                     return rightIndex < 6 && line[rightIndex + 1] == " "
                 }
                 if canMove {
                     shape.indices.forEach { rowIndex in
-                        var line = vault[top - rowIndex]!
+                        var line = tower[top - rowIndex]!
                         for index in (0 ..< 6).reversed() {
                             guard line[index] == "#" else { continue }
                             line[index + 1] = "#"
                             line[index] = " "
                         }
-                        vault[top - rowIndex] = line
+                        tower[top - rowIndex] = line
                     }
                 }
             }
-            canMoveDown = bottom > 0 && shape.indices.reversed().allSatisfy { rowIndex in
-                let bottomRow = vault[top - rowIndex]!
-                let nextRow = vault[top - rowIndex - 1, default: emptyRow]
+            canMoveDown = (top - shape.count) >= 0 && shape.indices.reversed().allSatisfy { rowIndex in
+                let bottomRow = tower[top - rowIndex]!
+                let nextRow = tower[top - rowIndex - 1, default: emptyRow]
                 return bottomRow.indices.allSatisfy { index in
                     guard bottomRow[index] == "#" else { return true }
                     return nextRow[index] == " " || nextRow[index] == "#"
@@ -130,39 +128,36 @@ struct Vault {
             }
             if canMoveDown {
                 shape.indices.reversed().forEach { rowIndex in
-                    var line = vault[top - rowIndex]!
-                    var nextLine = vault[top - rowIndex - 1, default: emptyRow]
+                    var line = tower[top - rowIndex]!
+                    var nextLine = tower[top - rowIndex - 1, default: emptyRow]
                     for index in 0 ..< 7 {
                         guard line[index] == "#" else { continue }
                         nextLine[index] = "#"
                         line[index] = " "
                     }
-                    vault[top - rowIndex - 1] = nextLine
-                    vault[top - rowIndex] = line == emptyRow ? nil : line
+                    tower[top - rowIndex - 1] = nextLine
+                    tower[top - rowIndex] = line == emptyRow ? nil : line
                 }
-                bottom -= 1
                 top -= 1
             } else {
                 shape.indices.forEach { rowIndex in
-                    var line = vault[top - rowIndex]!
+                    var line = tower[top - rowIndex]!
                     line = line.replacing(["#"], with: ["@"])
-                    vault[top - rowIndex] = line
+                    tower[top - rowIndex] = line
                 }
             }
         }
-//        let height = vault.keys.max()! + 1
-//        assert((0 ..< height).allSatisfy { vault[$0] != nil })
     }
 }
 
 enum Part1 {
     static func run(_ source: InputData) {
-        var vault = Vault(source.data)
+        var chamber = Chamber(source.data)
         for _ in 1 ... 2022 {
-            vault.dropRock()
+            chamber.dropRock()
         }
 
-        print("Part 1 (\(source)): \(vault.height)")
+        print("Part 1 (\(source)): \(chamber.height)")
     }
 }
 
@@ -174,18 +169,18 @@ extension ArraySlice {
     }
 }
 
-extension Vault {
-    var stack: [[String]] {
-        vault.sorted { $0.key < $1.key }.map(\.value)
+extension Chamber {
+    var rows: [String] {
+        (0 ..< height).map { tower[$0]!.joined() }
     }
 
-    func findPattern() -> (preamble: [[String]], pattern: [[String]])? {
-        let stack = self.stack
-        let count = stack.count
+    func findPattern() -> (preamble: [String], pattern: [String])? {
+        let rows = self.rows
+        let count = rows.count
         let preambleMax = max(0, count - 100)
         for preambleCount in 0 ..< preambleMax {
-            let preamble = stack.prefix(preambleCount)
-            let halves = stack.dropFirst(preambleCount).split()
+            let preamble = rows.prefix(preambleCount)
+            let halves = rows.dropFirst(preambleCount).split()
             if halves.0 == halves.1 {
                 return (Array(preamble), Array(halves.0))
             }
@@ -198,28 +193,24 @@ enum Part2 {
     static let maxRocks = 1_000_000_000_000
 
     static func run(_ source: InputData) {
-        var vault = Vault(source.data)
-        var states: [ [[String]] ] = []
-        var preambleState: [[String]]!
-        var patternState: [[String]]!
+        var chamber = Chamber(source.data)
+        var states: [ [String] ] = [chamber.rows]
+        var preambleRows: [String]!
+        var patternRows: [String]!
         var preambleRockCount = 0
         var patternRockCount = 0
         var rockCount = 0
 
-        states.append(vault.stack)
         while true {
-            vault.dropRock()
-            states.append(vault.stack)
+            chamber.dropRock()
+            states.append(chamber.rows)
             rockCount += 1
-            vault.dropRock()
-            states.append(vault.stack)
-            rockCount += 1
-            if let (preamble, pattern) = vault.findPattern() {
-                if let index = states.firstIndex(of: preamble + pattern) {
-                    preambleState = preamble
-                    patternState = pattern
+            if let (preamble, pattern) = chamber.findPattern() {
+                if let index = states.firstIndex(of: preamble) {
+                    preambleRows = preamble
+                    patternRows = pattern
                     preambleRockCount = index
-                    patternRockCount = rockCount - index
+                    patternRockCount = (rockCount - preambleRockCount) / 2
                     break
                 }
             }
@@ -227,8 +218,8 @@ enum Part2 {
 
         let repeatCount = (Self.maxRocks - preambleRockCount) / patternRockCount
         let remainder = (Self.maxRocks - preambleRockCount) % patternRockCount
-        let height = states[preambleRockCount + remainder].count - preambleState.count
-        let result = preambleState.count + repeatCount * patternState.count + height
+        let height = states[preambleRockCount + remainder].count - preambleRows.count
+        let result = preambleRows.count + repeatCount * patternRows.count + height
 
         print("Part 2 (\(source)): \(result)")
     }
