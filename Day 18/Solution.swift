@@ -141,11 +141,64 @@ enum Part2 {
         )
     }
 
+    // MARK: Alternate solution
+
+    static func floodFillSolution(_ rocks: Set<Position>) -> Int {
+        let xRange = {
+            let values = rocks.map(\.x).sorted()
+            return (values.first! - 1) ... (values.last! + 1)
+        }()
+        let yRange = {
+            let values = rocks.map(\.y).sorted()
+            return (values.first! - 1) ... (values.last! + 1)
+        }()
+        let zRange = {
+            let values = rocks.map(\.z).sorted()
+            return (values.first! - 1) ... (values.last! + 1)
+        }()
+
+        var water: Set<Position> = [
+            Position(x: xRange.lowerBound, y: yRange.lowerBound, z: zRange.lowerBound)
+        ]
+
+        func isInside(_ cube: Position) -> Bool {
+            xRange.contains(cube.x) && yRange.contains(cube.y) && zRange.contains(cube.z)
+        }
+        func isVoid(_ cube: Position) -> Bool {
+            isInside(cube) && water.contains(cube) == false && rocks.contains(cube) == false
+        }
+
+        var queue = water
+        while queue.isEmpty == false {
+            let cube = queue.removeFirst()
+            cube.allDirections.forEach { adjacent in
+                if isVoid(adjacent) {
+                    water.insert(adjacent)
+                    queue.insert(adjacent)
+                }
+            }
+        }
+
+        let totalArea = water.reduce(0) { result, cube in
+            result + cube.allDirections.filter { water.contains($0) == false }.count
+        }
+        let zFace = xRange.count * yRange.count
+        let yFace = xRange.count * zRange.count
+        let xFace = yRange.count * zRange.count
+        return totalArea - (zFace * 2 + yFace * 2 + xFace * 2)
+    }
+
     static func run(_ source: InputData) {
         let cubes = Set(source.data.map(Position.init(line:)))
-        var water = exteriorFill(cubes)
-        water.fillVoids()
 
-        print("Part 2 (\(source)): \(water.interiorArea)")
+        // Original solution:
+//        var water = exteriorFill(cubes)
+//        water.fillVoids()
+//        let interiorArea = water.interiorArea
+
+        // Flood-fill solution:
+        let interiorArea = floodFillSolution(cubes)
+
+        print("Part 2 (\(source)): \(interiorArea)")
     }
 }
