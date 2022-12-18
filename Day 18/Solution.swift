@@ -143,17 +143,17 @@ enum Part2 {
 
     // MARK: Alternate solution
 
-    static func floodFillSolution(_ rocks: Set<Position>) -> Int {
+    static func floodFillSolution(_ lava: Set<Position>) -> Int {
         let xRange = {
-            let values = rocks.map(\.x).sorted()
+            let values = lava.map(\.x).sorted()
             return (values.first! - 1) ... (values.last! + 1)
         }()
         let yRange = {
-            let values = rocks.map(\.y).sorted()
+            let values = lava.map(\.y).sorted()
             return (values.first! - 1) ... (values.last! + 1)
         }()
         let zRange = {
-            let values = rocks.map(\.z).sorted()
+            let values = lava.map(\.z).sorted()
             return (values.first! - 1) ... (values.last! + 1)
         }()
 
@@ -161,18 +161,21 @@ enum Part2 {
             Position(x: xRange.lowerBound, y: yRange.lowerBound, z: zRange.lowerBound)
         ]
 
-        func isInside(_ cube: Position) -> Bool {
+        func isInRange(_ cube: Position) -> Bool {
             xRange.contains(cube.x) && yRange.contains(cube.y) && zRange.contains(cube.z)
         }
-        func isVoid(_ cube: Position) -> Bool {
-            isInside(cube) && water.contains(cube) == false && rocks.contains(cube) == false
+        func isNotWater(_ cube: Position) -> Bool {
+            water.contains(cube) == false
+        }
+        func isNotLava(_ cube: Position) -> Bool {
+            lava.contains(cube) == false
         }
 
         var queue = water
         while queue.isEmpty == false {
             let cube = queue.removeFirst()
             cube.allDirections.forEach { adjacent in
-                if isVoid(adjacent) {
+                if isInRange(adjacent) && isNotWater(adjacent) && isNotLava(adjacent) {
                     water.insert(adjacent)
                     queue.insert(adjacent)
                 }
@@ -185,7 +188,8 @@ enum Part2 {
         let zFace = xRange.count * yRange.count
         let yFace = xRange.count * zRange.count
         let xFace = yRange.count * zRange.count
-        return totalArea - (zFace * 2 + yFace * 2 + xFace * 2)
+        let exteriorArea = zFace * 2 + yFace * 2 + xFace * 2
+        return totalArea - exteriorArea
     }
 
     static func run(_ source: InputData) {
@@ -194,11 +198,11 @@ enum Part2 {
         // Original solution:
 //        var water = exteriorFill(cubes)
 //        water.fillVoids()
-//        let interiorArea = water.interiorArea
+//        let area = water.interiorArea
 
         // Flood-fill solution:
-        let interiorArea = floodFillSolution(cubes)
+        let area = floodFillSolution(cubes)
 
-        print("Part 2 (\(source)): \(interiorArea)")
+        print("Part 2 (\(source)): \(area)")
     }
 }
