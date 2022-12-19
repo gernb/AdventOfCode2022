@@ -5,7 +5,7 @@
 //  Copyright © 2022 peter bohac. All rights reserved.
 //
 
-enum Resource: CaseIterable {
+enum Resource {
     case ore, clay, obsidian, geode
 }
 
@@ -41,7 +41,7 @@ func /+(n: Int, d: Int) -> Int {
 // MARK: - Part 1
 
 struct State {
-    let maxTime = 24
+    let maxTime: Int
     let blueprint: Blueprint
 
     var time: Int = 0
@@ -65,6 +65,9 @@ struct State {
             let minutesForObsidian = max(0, blueprint.robotCosts[.geode]!.obsidian - obsidian) /+ obsidianRobots
             let minutesForOre = max(0, blueprint.robotCosts[.geode]!.ore - ore) /+ oreRobots
             let minutes = max(minutesForObsidian, minutesForOre)
+            if minutes == 0 {
+                return [createRobot(producing: .geode)]
+            }
             if time + minutes < maxTime {
                 let state = self.collectResources(advancing: minutes).createRobot(producing: .geode)
                 nextStates.append(state)
@@ -75,6 +78,9 @@ struct State {
             let minutesForClay = max(0, blueprint.robotCosts[.obsidian]!.clay - clay) /+ clayRobots
             let minutesForOre = max(0, blueprint.robotCosts[.obsidian]!.ore - ore) /+ oreRobots
             let minutes = max(minutesForClay, minutesForOre)
+            if minutes == 0 { // This isn't quite right, since it results in the wrong number for blueprint 1 in the example...
+                return [createRobot(producing: .obsidian)]
+            }
             if time + minutes < maxTime {
                 let state = self.collectResources(advancing: minutes).createRobot(producing: .obsidian)
                 nextStates.append(state)
@@ -155,8 +161,8 @@ func findAllPaths<Node>(from start: Node, using getNextNodes: (Node) -> [Node]) 
 enum Part1 {
     static func run(_ source: InputData) {
         let blueprints = source.data.map(Blueprint.init(line:))
-        let qualityLevels = blueprints.compactMap { blueprint -> Int? in
-            let start = State(blueprint: blueprint)
+        let qualityLevels = blueprints.map { blueprint in
+            let start = State(maxTime: 24, blueprint: blueprint)
             let solutions = findAllPaths(from: start) { $0.nextStates() }
             let best = solutions.max(by: { $0.last!.geodes < $1.last!.geodes })!
             print("Blueprint \(blueprint.id): \(best.last!.geodes)")
@@ -172,8 +178,16 @@ enum Part1 {
 
 enum Part2 {
     static func run(_ source: InputData) {
-//        let input = source.data
+        let blueprints = source.data.map(Blueprint.init(line:)).prefix(3)
+        let maxGeodes = blueprints.map { blueprint in
+            let start = State(maxTime: 32, blueprint: blueprint)
+            let solutions = findAllPaths(from: start) { $0.nextStates() }
+            let best = solutions.max(by: { $0.last!.geodes < $1.last!.geodes })!
+            print("Blueprint \(blueprint.id): \(best.last!.geodes)")
+            return best.last!.geodes
+        }
+        let result = maxGeodes.reduce(1, *)
 
-        print("Part 2 (\(source)):")
+        print("Part 2 (\(source)): \(result)")
     }
 }
