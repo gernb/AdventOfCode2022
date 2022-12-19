@@ -36,172 +36,94 @@ extension Position {
 // MARK: - Part 1
 
 enum Part1 {
-    static func run(_ source: InputData) {
-        let cubes = Set(source.data.map(Position.init(line:)))
-        let surfaceArea = cubes.reduce(0) { result, cube in
+    static func surfaceArea(of cubes: Set<Position>) -> Int {
+        cubes.reduce(0) { result, cube in
             result + cube.allDirections.filter { cubes.contains($0) == false }.count
         }
+    }
 
-        print("Part 1 (\(source)): \(surfaceArea)")
+    static func run(_ source: InputData) {
+        let lava = Set(source.data.map(Position.init(line:)))
+
+        print("Part 1 (\(source)): \(surfaceArea(of: lava))")
     }
 }
 
 // MARK: - Part 2
 
-enum Part2 {
-    struct Water {
-        var cubes: Set<Position>
-        let rock: Set<Position>
-        let xRange: ClosedRange<Int>
-        let yRange: ClosedRange<Int>
-        let zRange: ClosedRange<Int>
+extension Collection {
+    func range<Value: Comparable>(of property: KeyPath<Element, Value>) -> ClosedRange<Value> {
+        let values = self.map { $0[keyPath: property] }.sorted()
+        return values.first! ... values.last!
+    }
+}
 
-        var interiorArea: Int {
-            let total = cubes.reduce(0) { result, cube in
-                result + cube.allDirections.filter { cubes.contains($0) == false }.count
-            }
-            let zFace = xRange.count * yRange.count
-            let yFace = xRange.count * zRange.count
-            let xFace = yRange.count * zRange.count
-            return total - (zFace * 2 + yFace * 2 + xFace * 2)
-        }
+extension ClosedRange where Bound: Numeric {
+    func extened(by value: Bound) -> ClosedRange {
+        lowerBound - value ... upperBound + value
+    }
+}
 
-        func isInside(_ cube: Position) -> Bool {
-            xRange.contains(cube.x) && yRange.contains(cube.y) && zRange.contains(cube.z)
-        }
+struct BoundingBox {
+    let xRange: ClosedRange<Int>
+    let yRange: ClosedRange<Int>
+    let zRange: ClosedRange<Int>
 
-        func isVoid(_ cube: Position) -> Bool {
-            isInside(cube) && cubes.contains(cube) == false && rock.contains(cube) == false
-        }
-
-        mutating func fillVoids() {
-            var queue = cubes
-            while queue.isEmpty == false {
-                let cube = queue.removeFirst()
-                cube.allDirections.forEach { adjacent in
-                    if isVoid(adjacent) {
-                        cubes.insert(adjacent)
-                        queue.insert(adjacent)
-                    }
-                }
-            }
-        }
+    var min: Position {
+        .init(x: xRange.lowerBound, y: yRange.lowerBound, z: zRange.lowerBound)
     }
 
-    static func exteriorFill(_ cubes: Set<Position>) -> Water {
-        let xRange = {
-            let values = cubes.map(\.x).sorted()
-            return (values.first! - 1) ... (values.last! + 1)
-        }()
-        let yRange = {
-            let values = cubes.map(\.y).sorted()
-            return (values.first! - 1) ... (values.last! + 1)
-        }()
-        let zRange = {
-            let values = cubes.map(\.z).sorted()
-            return (values.first! - 1) ... (values.last! + 1)
-        }()
-
-        var exteriorCubes: Set<Position> = []
-        func addLine(_ line: [Position]) {
-            if let first = line.firstIndex(where: { cubes.contains($0) }),
-               let last = line.lastIndex(where: { cubes.contains($0) }) {
-                exteriorCubes.formUnion(line[0 ..< first])
-                exteriorCubes.formUnion(line[(last + 1 ..< line.count)])
-            } else {
-                exteriorCubes.formUnion(line)
-            }
-        }
-
-        for z in zRange {
-            for y in yRange {
-                let line = xRange.map { Position(x: $0, y: y, z: z) }
-                addLine(line)
-            }
-        }
-        for z in zRange {
-            for x in xRange {
-                let line = yRange.map { Position(x: x, y: $0, z: z) }
-                addLine(line)
-            }
-        }
-        for y in yRange {
-            for x in xRange {
-                let line = zRange.map { Position(x: x, y: y, z: $0) }
-                addLine(line)
-            }
-        }
-
-        return .init(
-            cubes: exteriorCubes,
-            rock: cubes,
-            xRange: xRange,
-            yRange: yRange,
-            zRange: zRange
-        )
-    }
-
-    // MARK: Alternate solution
-
-    static func floodFillSolution(_ lava: Set<Position>) -> Int {
-        let xRange = {
-            let values = lava.map(\.x).sorted()
-            return (values.first! - 1) ... (values.last! + 1)
-        }()
-        let yRange = {
-            let values = lava.map(\.y).sorted()
-            return (values.first! - 1) ... (values.last! + 1)
-        }()
-        let zRange = {
-            let values = lava.map(\.z).sorted()
-            return (values.first! - 1) ... (values.last! + 1)
-        }()
-
-        var water: Set<Position> = [
-            Position(x: xRange.lowerBound, y: yRange.lowerBound, z: zRange.lowerBound)
-        ]
-
-        func isInRange(_ cube: Position) -> Bool {
-            xRange.contains(cube.x) && yRange.contains(cube.y) && zRange.contains(cube.z)
-        }
-        func isNotWater(_ cube: Position) -> Bool {
-            water.contains(cube) == false
-        }
-        func isNotLava(_ cube: Position) -> Bool {
-            lava.contains(cube) == false
-        }
-
-        var queue = water
-        while queue.isEmpty == false {
-            let cube = queue.removeFirst()
-            cube.allDirections.forEach { adjacent in
-                if isInRange(adjacent) && isNotWater(adjacent) && isNotLava(adjacent) {
-                    water.insert(adjacent)
-                    queue.insert(adjacent)
-                }
-            }
-        }
-
-        let totalArea = water.reduce(0) { result, cube in
-            result + cube.allDirections.filter { water.contains($0) == false }.count
-        }
+    var surfaceArea: Int {
         let zFace = xRange.count * yRange.count
         let yFace = xRange.count * zRange.count
         let xFace = yRange.count * zRange.count
-        let exteriorArea = zFace * 2 + yFace * 2 + xFace * 2
-        return totalArea - exteriorArea
+        return zFace * 2 + yFace * 2 + xFace * 2
     }
 
+    func extended(by value: Int) -> Self {
+        .init(
+            xRange: xRange.extened(by: value),
+            yRange: yRange.extened(by: value),
+            zRange: zRange.extened(by: value)
+        )
+    }
+
+    func contains(_ position: Position) -> Bool {
+        xRange.contains(position.x) && yRange.contains(position.y) && zRange.contains(position.z)
+    }
+
+    func floodFill(from start: Position? = nil, shouldFill: (Position) -> Bool = { _ in true }) -> Set<Position> {
+        var filled: Set<Position> = [start ?? min]
+        var queue = filled
+        while queue.isEmpty == false {
+            let position = queue.removeFirst()
+            position.allDirections.forEach { next in
+                if self.contains(next) && filled.contains(next) == false && shouldFill(next) {
+                    filled.insert(next)
+                    queue.insert(next)
+                }
+            }
+        }
+        return filled
+    }
+}
+
+extension BoundingBox {
+    init(containing positions: any Collection<Position>) {
+        self.init(
+            xRange: positions.range(of: \.x),
+            yRange: positions.range(of: \.y),
+            zRange: positions.range(of: \.z)
+        )
+    }
+}
+
+enum Part2 {
     static func run(_ source: InputData) {
-        let cubes = Set(source.data.map(Position.init(line:)))
-
-        // Original solution:
-//        var water = exteriorFill(cubes)
-//        water.fillVoids()
-//        let area = water.interiorArea
-
-        // Flood-fill solution:
-        let area = floodFillSolution(cubes)
+        let lava = Set(source.data.map(Position.init(line:)))
+        let boundingBox = BoundingBox(containing: lava).extended(by: 1)
+        let water = boundingBox.floodFill { lava.contains($0) == false }
+        let area = Part1.surfaceArea(of: water) - boundingBox.surfaceArea
 
         print("Part 2 (\(source)): \(area)")
     }

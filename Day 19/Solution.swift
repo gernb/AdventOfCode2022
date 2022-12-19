@@ -9,7 +9,7 @@
 
 enum Part1 {
     static func run(_ source: InputData) {
-        let input = source.data
+//        let input = source.data
 
         print("Part 1 (\(source)):")
     }
@@ -19,7 +19,7 @@ enum Part1 {
 
 enum Part2 {
     static func run(_ source: InputData) {
-        let input = source.data
+//        let input = source.data
 
         print("Part 2 (\(source)):")
     }
