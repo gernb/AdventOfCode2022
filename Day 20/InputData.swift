@@ -12,10 +12,23 @@ enum InputData: String, CaseIterable {
 
     case example, challenge
 
-    var data: [String] {
+    var numbers: [Int] {
+        let values = self.lines.compactMap(Int.init)
+        assert(values.count == lines.count)
+        return values
+    }
+
+    var lines: [String] {
         switch self {
 
         case .example: return """
+1
+2
+-3
+3
+-2
+0
+4
 """.components(separatedBy: .newlines)
 
         case .challenge:
