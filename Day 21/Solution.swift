@@ -59,6 +59,43 @@ enum Part1 {
 
 // MARK: - Part 2
 
+extension ClosedRange where Bound == Int {
+    var halves: (lower: ClosedRange, upper: ClosedRange) {
+        assert(count >= 2)
+        let mid = lowerBound + count / 2
+        return (lowerBound ... mid - 1, mid ... upperBound)
+    }
+}
+
+func find(_ value: Int, in range: ClosedRange<Int>, using valueFor: (Int) -> Int) -> Int {
+    let halves = range.halves
+    for newRange in [halves.lower, halves.upper] {
+        let lower = valueFor(newRange.lowerBound)
+        if lower == value {
+            return newRange.lowerBound
+        }
+        let upper = valueFor(newRange.upperBound)
+        if upper == value {
+            return newRange.upperBound
+        }
+
+        if (min(lower, upper) ... max(lower, upper)).contains(value) {
+            // It seems like there are multiple input values that can generate the output value.
+            // So let's find the _lowest_ one that works.
+            if newRange.count < 30 {
+                for v in newRange {
+                    if valueFor(v) == value {
+                        return v
+                    }
+                }
+            } else {
+                return find(value, in: newRange, using: valueFor)
+            }
+        }
+    }
+    fatalError()
+}
+
 extension Operation {
     var monkeys: [String] {
         switch self {
@@ -101,40 +138,10 @@ enum Part2 {
             valueToFind = performJob(for: rootMonkeys[0])
         }
 
-        func find(_ value: Int, using calculate: (Int) -> Int) -> Int {
-            var lower = 0
-            var upper = Int.max / 100 // Avoid arithmetic overflow
-            while (upper - lower) > 100 {
-                let next = (upper - lower) / 2 + lower
-                let result = calculate(next)
-                if result == value {
-                    return next
-                }
-                if source == .example {
-                    // The example seems to increase as the number yelled increases
-                    if result > value {
-                        upper = next - 1
-                    } else {
-                        lower = next + 1
-                    }
-                } else {
-                    // My challenge seems to decrease as the number yelled increases
-                    if result < value {
-                        upper = next - 1
-                    } else {
-                        lower = next + 1
-                    }
-                }
-            }
-            for next in lower ... upper {
-                if calculate(next) == value {
-                    return next
-                }
-            }
-            fatalError()
-        }
+        let lower = 0
+        let upper = Int.max / 100 // Avoid arithmetic overflow
 
-        let valueToYell = find(valueToFind) {
+        let valueToYell = find(valueToFind, in: lower ... upper) {
             jobs["humn"] = .yell($0)
             return performJob(for: unknown)
         }
