@@ -10,7 +10,7 @@ enum Operation {
     case subtract(String, String)
     case multiply(String, String)
     case divide(String, String)
-    case yell(Int)
+    case yell(Double)
 }
 
 typealias Jobs = [String: Operation]
@@ -20,7 +20,7 @@ func loadMonkeys(_ lines: [String]) -> Jobs {
     lines.reduce(into: Jobs()) { jobs, line in
         let parts = line.components(separatedBy: " ")
         let monkey = String(parts[0].dropLast())
-        if let value = Int(parts[1]) {
+        if let value = Double(parts[1]) {
             jobs[monkey] = .yell(value)
         } else {
             switch parts[2] {
@@ -40,7 +40,7 @@ enum Part1 {
     static func run(_ source: InputData) {
         let jobs = loadMonkeys(source.lines)
 
-        func performJob(for monkey: String) -> Int {
+        func performJob(for monkey: String) -> Double {
             let job = jobs[monkey]!
             switch job {
             case .yell(let value): return value
@@ -51,7 +51,7 @@ enum Part1 {
             }
         }
 
-        let root = performJob(for: "root")
+        let root = Int(performJob(for: "root"))
 
         print("Part 1 (\(source)): \(root)")
     }
@@ -59,17 +59,10 @@ enum Part1 {
 
 // MARK: - Part 2
 
-extension ClosedRange where Bound == Int {
-    var halves: (lower: ClosedRange, upper: ClosedRange) {
-        assert(count >= 2)
-        let mid = lowerBound + count / 2
-        return (lowerBound ... mid - 1, mid ... upperBound)
-    }
-}
-
-func find(_ value: Int, in range: ClosedRange<Int>, using valueFor: (Int) -> Int) -> Int {
-    let halves = range.halves
-    for newRange in [halves.lower, halves.upper] {
+func find(_ value: Double, in range: ClosedRange<Int>, using valueFor: (Int) -> Double) -> Int {
+    assert(range.count >= 2)
+    let mid = range.lowerBound + range.count / 2
+    for newRange in [range.lowerBound ... mid - 1, mid ... range.upperBound] {
         let lower = valueFor(newRange.lowerBound)
         if lower == value {
             return newRange.lowerBound
@@ -80,17 +73,7 @@ func find(_ value: Int, in range: ClosedRange<Int>, using valueFor: (Int) -> Int
         }
 
         if (min(lower, upper) ... max(lower, upper)).contains(value) {
-            // It seems like there are multiple input values that can generate the output value.
-            // So let's find the _lowest_ one that works.
-            if newRange.count < 30 {
-                for v in newRange {
-                    if valueFor(v) == value {
-                        return v
-                    }
-                }
-            } else {
-                return find(value, in: newRange, using: valueFor)
-            }
+            return find(value, in: newRange, using: valueFor)
         }
     }
     fatalError()
@@ -116,7 +99,7 @@ enum Part2 {
             let monkeys = jobs[monkey]!.monkeys
             return monkeys.reduce(Set(monkeys)) { $0.union(neededMonkeys(for: $1)) }
         }
-        func performJob(for monkey: String) -> Int {
+        func performJob(for monkey: String) -> Double {
             let job = jobs[monkey]!
             switch job {
             case .yell(let value): return value
@@ -129,7 +112,7 @@ enum Part2 {
 
         let rootMonkeys = jobs["root"]!.monkeys
         let unknown: String
-        let valueToFind: Int
+        let valueToFind: Double
         if neededMonkeys(for: rootMonkeys[0]).contains("humn") {
             unknown = rootMonkeys[0]
             valueToFind = performJob(for: rootMonkeys[1])
@@ -142,7 +125,7 @@ enum Part2 {
         let upper = Int.max / 100 // Avoid arithmetic overflow
 
         let valueToYell = find(valueToFind, in: lower ... upper) {
-            jobs["humn"] = .yell($0)
+            jobs["humn"] = .yell(Double($0))
             return performJob(for: unknown)
         }
 
