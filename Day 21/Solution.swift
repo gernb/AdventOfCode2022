@@ -5,32 +5,37 @@
 //  Copyright © 2022 peter bohac. All rights reserved.
 //
 
-enum Operation {
-    case add(String, String)
-    case subtract(String, String)
-    case multiply(String, String)
-    case divide(String, String)
+enum Job {
     case yell(Double)
+    case wait(monkey1: String, monkey2: String, action: (Double, Double) -> Double)
 }
 
-typealias Jobs = [String: Operation]
-
-// root: pppw + sjmn
-func loadMonkeys(_ lines: [String]) -> Jobs {
-    lines.reduce(into: Jobs()) { jobs, line in
+func loadMonkeys(_ lines: [String]) -> [String: Job] {
+    lines.reduce(into: [String: Job]()) { jobs, line in
         let parts = line.components(separatedBy: " ")
         let monkey = String(parts[0].dropLast())
         if let value = Double(parts[1]) {
             jobs[monkey] = .yell(value)
         } else {
             switch parts[2] {
-            case "+": jobs[monkey] = .add(parts[1], parts[3])
-            case "-": jobs[monkey] = .subtract(parts[1], parts[3])
-            case "*": jobs[monkey] = .multiply(parts[1], parts[3])
-            case "/": jobs[monkey] = .divide(parts[1], parts[3])
+            case "+": jobs[monkey] = .wait(monkey1: parts[1], monkey2: parts[3], action: { $0 + $1 })
+            case "-": jobs[monkey] = .wait(monkey1: parts[1], monkey2: parts[3], action: { $0 - $1 })
+            case "*": jobs[monkey] = .wait(monkey1: parts[1], monkey2: parts[3], action: { $0 * $1 })
+            case "/": jobs[monkey] = .wait(monkey1: parts[1], monkey2: parts[3], action: { $0 / $1 })
             default: fatalError()
             }
         }
+    }
+}
+
+func performJob(for monkey: String, with jobs: [String: Job]) -> Double {
+    switch jobs[monkey] {
+    case .yell(let value): return value
+    case .wait(let monkey1, let monkey2, let action):
+        let lhs = performJob(for: monkey1, with: jobs)
+        let rhs = performJob(for: monkey2, with: jobs)
+        return action(lhs, rhs)
+    case .none: fatalError()
     }
 }
 
@@ -39,19 +44,7 @@ func loadMonkeys(_ lines: [String]) -> Jobs {
 enum Part1 {
     static func run(_ source: InputData) {
         let jobs = loadMonkeys(source.lines)
-
-        func performJob(for monkey: String) -> Double {
-            let job = jobs[monkey]!
-            switch job {
-            case .yell(let value): return value
-            case .add(let lhs, let rhs): return performJob(for: lhs) + performJob(for: rhs)
-            case .subtract(let lhs, let rhs): return performJob(for: lhs) - performJob(for: rhs)
-            case .multiply(let lhs, let rhs): return performJob(for: lhs) * performJob(for: rhs)
-            case .divide(let lhs, let rhs): return performJob(for: lhs) / performJob(for: rhs)
-            }
-        }
-
-        let root = Int(performJob(for: "root"))
+        let root = Int(performJob(for: "root", with: jobs))
 
         print("Part 1 (\(source)): \(root)")
     }
@@ -60,33 +53,32 @@ enum Part1 {
 // MARK: - Part 2
 
 func find(_ value: Double, in range: ClosedRange<Int>, using valueFor: (Int) -> Double) -> Int {
-    assert(range.count >= 2)
-    let mid = range.lowerBound + range.count / 2
-    for newRange in [range.lowerBound ... mid - 1, mid ... range.upperBound] {
-        let lower = valueFor(newRange.lowerBound)
-        if lower == value {
-            return newRange.lowerBound
-        }
-        let upper = valueFor(newRange.upperBound)
-        if upper == value {
-            return newRange.upperBound
-        }
-
-        if (min(lower, upper) ... max(lower, upper)).contains(value) {
-            return find(value, in: newRange, using: valueFor)
+    var range = range
+    while range.lowerBound != range.upperBound {
+        let mid = range.lowerBound + range.count / 2
+        for newRange in [range.lowerBound ... mid - 1, mid ... range.upperBound] {
+            let lower = valueFor(newRange.lowerBound)
+            if lower == value {
+                return newRange.lowerBound
+            }
+            let upper = valueFor(newRange.upperBound)
+            if upper == value {
+                return newRange.upperBound
+            }
+            if (min(lower, upper) ... max(lower, upper)).contains(value) {
+                range = newRange
+                continue
+            }
         }
     }
     fatalError()
 }
 
-extension Operation {
-    var monkeys: [String] {
+extension Job {
+    var waitingOnMonkeys: [String] {
         switch self {
         case .yell: return []
-        case .add(let lhs, let rhs): return [lhs, rhs]
-        case .subtract(let lhs, let rhs): return [lhs, rhs]
-        case .multiply(let lhs, let rhs): return [lhs, rhs]
-        case .divide(let lhs, let rhs): return [lhs, rhs]
+        case .wait(let monkey1, let monkey2, _): return [monkey1, monkey2]
         }
     }
 }
@@ -96,29 +88,19 @@ enum Part2 {
         var jobs = loadMonkeys(source.lines)
 
         func neededMonkeys(for monkey: String) -> Set<String> {
-            let monkeys = jobs[monkey]!.monkeys
+            let monkeys = jobs[monkey]!.waitingOnMonkeys
             return monkeys.reduce(Set(monkeys)) { $0.union(neededMonkeys(for: $1)) }
         }
-        func performJob(for monkey: String) -> Double {
-            let job = jobs[monkey]!
-            switch job {
-            case .yell(let value): return value
-            case .add(let lhs, let rhs): return performJob(for: lhs) + performJob(for: rhs)
-            case .subtract(let lhs, let rhs): return performJob(for: lhs) - performJob(for: rhs)
-            case .multiply(let lhs, let rhs): return performJob(for: lhs) * performJob(for: rhs)
-            case .divide(let lhs, let rhs): return performJob(for: lhs) / performJob(for: rhs)
-            }
-        }
 
-        let rootMonkeys = jobs["root"]!.monkeys
+        let rootMonkeys = jobs["root"]!.waitingOnMonkeys
         let unknown: String
         let valueToFind: Double
         if neededMonkeys(for: rootMonkeys[0]).contains("humn") {
             unknown = rootMonkeys[0]
-            valueToFind = performJob(for: rootMonkeys[1])
+            valueToFind = performJob(for: rootMonkeys[1], with: jobs)
         } else {
             unknown = rootMonkeys[1]
-            valueToFind = performJob(for: rootMonkeys[0])
+            valueToFind = performJob(for: rootMonkeys[0], with: jobs)
         }
 
         let lower = 0
@@ -126,7 +108,7 @@ enum Part2 {
 
         let valueToYell = find(valueToFind, in: lower ... upper) {
             jobs["humn"] = .yell(Double($0))
-            return performJob(for: unknown)
+            return performJob(for: unknown, with: jobs)
         }
 
         print("Part 2 (\(source)): \(valueToYell)")
