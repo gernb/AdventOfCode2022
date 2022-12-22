@@ -12,15 +12,32 @@ enum InputData: String, CaseIterable {
 
     case example, challenge
 
-    var data: [String] {
+    var map: [String] { self.lines.dropLast(2) }
+    var path: String { self.lines.last! }
+
+    var lines: [String] {
         switch self {
 
         case .example: return """
+        ...#
+        .#..
+        #...
+        ....
+...#.......#
+........#...
+..#....#....
+..........#.
+        ...#....
+        .....#..
+        .#......
+        ......#.
+
+10R5L5R10L4R5L5
 """.components(separatedBy: .newlines)
 
         case .challenge:
             return try! String(contentsOfFile: ("~/Desktop/input.txt" as NSString).expandingTildeInPath)
-                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .trimmingCharacters(in: .newlines)
                 .components(separatedBy: .newlines)
 
         }
