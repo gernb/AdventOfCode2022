@@ -5,30 +5,32 @@
 //  Copyright © 2022 peter bohac. All rights reserved.
 //
 
+typealias Monkey = String
+
 enum Job {
     case yell(Double)
-    case wait(monkey1: String, monkey2: String, action: (Double, Double) -> Double)
+    case wait(Monkey, Monkey, action: (Double, Double) -> Double)
 }
 
-func loadMonkeys(_ lines: [String]) -> [String: Job] {
-    lines.reduce(into: [String: Job]()) { jobs, line in
+func loadMonkeys(_ lines: [String]) -> [Monkey: Job] {
+    lines.reduce(into: [Monkey: Job]()) { jobs, line in
         let parts = line.components(separatedBy: " ")
         let monkey = String(parts[0].dropLast())
         if let value = Double(parts[1]) {
             jobs[monkey] = .yell(value)
         } else {
             switch parts[2] {
-            case "+": jobs[monkey] = .wait(monkey1: parts[1], monkey2: parts[3], action: { $0 + $1 })
-            case "-": jobs[monkey] = .wait(monkey1: parts[1], monkey2: parts[3], action: { $0 - $1 })
-            case "*": jobs[monkey] = .wait(monkey1: parts[1], monkey2: parts[3], action: { $0 * $1 })
-            case "/": jobs[monkey] = .wait(monkey1: parts[1], monkey2: parts[3], action: { $0 / $1 })
+            case "+": jobs[monkey] = .wait(parts[1], parts[3], action: +)
+            case "-": jobs[monkey] = .wait(parts[1], parts[3], action: -)
+            case "*": jobs[monkey] = .wait(parts[1], parts[3], action: *)
+            case "/": jobs[monkey] = .wait(parts[1], parts[3], action: /)
             default: fatalError()
             }
         }
     }
 }
 
-func performJob(for monkey: String, with jobs: [String: Job]) -> Double {
+func performJob(for monkey: Monkey, with jobs: [Monkey: Job]) -> Double {
     switch jobs[monkey] {
     case .yell(let value): return value
     case .wait(let monkey1, let monkey2, let action):
@@ -75,7 +77,7 @@ func find(_ value: Double, in range: ClosedRange<Int>, using valueFor: (Int) -> 
 }
 
 extension Job {
-    var waitingOnMonkeys: [String] {
+    var waitingOnMonkeys: [Monkey] {
         switch self {
         case .yell: return []
         case .wait(let monkey1, let monkey2, _): return [monkey1, monkey2]
@@ -87,13 +89,13 @@ enum Part2 {
     static func run(_ source: InputData) {
         var jobs = loadMonkeys(source.lines)
 
-        func neededMonkeys(for monkey: String) -> Set<String> {
+        func neededMonkeys(for monkey: Monkey) -> Set<Monkey> {
             let monkeys = jobs[monkey]!.waitingOnMonkeys
             return monkeys.reduce(Set(monkeys)) { $0.union(neededMonkeys(for: $1)) }
         }
 
         let rootMonkeys = jobs["root"]!.waitingOnMonkeys
-        let unknown: String
+        let unknown: Monkey
         let valueToFind: Double
         if neededMonkeys(for: rootMonkeys[0]).contains("humn") {
             unknown = rootMonkeys[0]
