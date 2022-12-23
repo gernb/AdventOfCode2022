@@ -44,12 +44,8 @@ struct BoundingBox {
     let xRange: ClosedRange<Int>
     let yRange: ClosedRange<Int>
 
-    func count(where include: (Int, Int) -> Bool) -> Int {
-        yRange.reduce(0) { result, y in
-            result + xRange.reduce(0) { result, x in
-                result + (include(x, y) ? 1 : 0)
-            }
-        }
+    var area: Int {
+        xRange.count * yRange.count
     }
 
     func draw(character: (Int, Int) -> String) {
@@ -88,49 +84,53 @@ func loadScan(_ lines: [String]) -> Set<Position> {
     }
 }
 
+typealias ProposedDirection = (proposal: KeyPath<Position, [Position]>, move: KeyPath<Position, Position>)
+let initialProposedDirections: [ProposedDirection] = [
+    (\.up, \.north),
+    (\.down, \.south),
+    (\.left, \.west),
+    (\.right, \.east),
+]
+
 // MARK: - Part 1
 
 enum Part1 {
-    static func run(_ source: InputData) {
-        var scan = loadScan(source.lines)
-        var proposedDirection = [
-            (direction: \Position.up, move: \Position.north),
-            (direction: \.down, move: \.south),
-            (direction: \.left, move: \.west),
-            (direction: \.right, move: \.east),
-        ]
-
+    static func round(elves: inout Set<Position>, proposedDirections: inout [ProposedDirection]) {
         func draw() {
-            BoundingBox(containing: scan).draw { x, y in
-                scan.contains(.init(x: x, y: y)) ? "#" : "."
+            BoundingBox(containing: elves).draw { x, y in
+                elves.contains(.init(x: x, y: y)) ? "#" : "."
             }
         }
+//        draw()
+        var proposals: [Position: [Position]] = [:]
+        for elf in elves {
+            if elf.adjacent.allSatisfy({ elves.contains($0) == false }) {
+                continue
+            }
+            for direction in proposedDirections {
+                if elf[keyPath: direction.proposal].allSatisfy({ elves.contains($0) == false }) {
+                    proposals[elf[keyPath: direction.move], default: []] += [elf]
+                    break
+                }
+            }
+        }
+        for proposal in proposals where proposal.value.count == 1 {
+            elves.insert(proposal.key)
+            elves.remove(proposal.value[0])
+        }
+        proposedDirections.rotateLeft()
+    }
+
+    static func run(_ source: InputData) {
+        var elves = loadScan(source.lines)
+        var proposedDirections = initialProposedDirections
 
         for _ in 1 ... 10 {
-//            draw()
-            var proposals: [Position: [Position]] = [:]
-            for elf in scan {
-                if elf.adjacent.allSatisfy({ scan.contains($0) == false }) {
-                    continue
-                }
-                for direction in proposedDirection {
-                    if elf[keyPath: direction.direction].allSatisfy({ scan.contains($0) == false }) {
-                        proposals[elf[keyPath: direction.move], default: []] += [elf]
-                        break
-                    }
-                }
-            }
-            for proposal in proposals where proposal.value.count == 1 {
-                scan.insert(proposal.key)
-                scan.remove(proposal.value[0])
-            }
-            proposedDirection.rotateLeft()
+            round(elves: &elves, proposedDirections: &proposedDirections)
         }
 
-        let boundingBox = BoundingBox(containing: scan)
-        let emptySpaces = boundingBox.count { x, y in
-            scan.contains(.init(x: x, y: y)) == false
-        }
+        let boundingBox = BoundingBox(containing: elves)
+        let emptySpaces = boundingBox.area - elves.count
 
         print("Part 1 (\(source)): \(emptySpaces)")
     }
@@ -140,37 +140,16 @@ enum Part1 {
 
 enum Part2 {
     static func run(_ source: InputData) {
-        var scan = loadScan(source.lines)
-        var proposedDirection = [
-            (direction: \Position.up, move: \Position.north),
-            (direction: \.down, move: \.south),
-            (direction: \.left, move: \.west),
-            (direction: \.right, move: \.east),
-        ]
-
+        var elves = loadScan(source.lines)
+        var proposedDirections = initialProposedDirections
         var count = 0
-        var previousScan = scan
+        var previousScan = elves
+
         repeat {
             count += 1
-            previousScan = scan
-            var proposals: [Position: [Position]] = [:]
-            for elf in scan {
-                if elf.adjacent.allSatisfy({ scan.contains($0) == false }) {
-                    continue
-                }
-                for direction in proposedDirection {
-                    if elf[keyPath: direction.direction].allSatisfy({ scan.contains($0) == false }) {
-                        proposals[elf[keyPath: direction.move], default: []] += [elf]
-                        break
-                    }
-                }
-            }
-            for proposal in proposals where proposal.value.count == 1 {
-                scan.insert(proposal.key)
-                scan.remove(proposal.value[0])
-            }
-            proposedDirection.rotateLeft()
-        } while scan != previousScan
+            previousScan = elves
+            Part1.round(elves: &elves, proposedDirections: &proposedDirections)
+        } while elves != previousScan
 
         print("Part 2 (\(source)): \(count)")
     }
