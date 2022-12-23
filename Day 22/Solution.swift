@@ -169,10 +169,120 @@ enum Part1 {
 
 // MARK: - Part 2
 
-enum Part2 {
-    static func run(_ source: InputData) {
-//        let input = source.data
+extension Position {
+    var adjacent: [Self] {
+        [up.left, up, up.right, left, right, down.left, down, down.right]
+    }
+}
 
-        print("Part 2 (\(source)):")
+struct Edge: Hashable {
+    var position: Position
+    var facing: Facing
+
+    var right: Self {
+        .init(position: position, facing: facing.right)
+    }
+    var left: Self {
+        .init(position: position, facing: facing.left)
+    }
+    var next: Self {
+        .init(position: position[facing], facing: facing)
+    }
+}
+
+enum Part2 {
+    static func connectEdges(of map: Map) -> [Edge: Edge] {
+        let convexCorners = map.board.keys.filter { position in
+            position.adjacent.filter { adjacent in
+                map.board[adjacent] == nil
+            }
+            .count == 1
+        }
+        var result: [Edge: Edge] = [:]
+
+        for corner in convexCorners {
+            var cw: Edge  // clockwise
+            var ccw: Edge // counter clockwise
+
+            if map.board[corner.up.left] == nil {
+                cw = .init(position: corner.up, facing: .up)
+                ccw = .init(position: corner.left, facing: .left)
+            } else if map.board[corner.up.right] == nil {
+                cw = .init(position: corner.right, facing: .right)
+                ccw = .init(position: corner.up, facing: .up)
+            } else if map.board[corner.down.right] == nil {
+                cw = .init(position: corner.down, facing: .down)
+                ccw = .init(position: corner.right, facing: .right)
+            } else { // corner.down.left
+                cw = .init(position: corner.left, facing: .left)
+                ccw = .init(position: corner.down, facing: .down)
+            }
+
+            var shouldContinue = true
+            repeat {
+                result[cw.left] = ccw.left
+                result[ccw.right] = cw.right
+                var cwNext = cw.next
+                var ccwNext = ccw.next
+                switch (map.board[cwNext.position], map.board[ccwNext.position]) {
+                case (.some, .some):
+                    cw = cwNext
+                    ccw = ccwNext
+                case (.some, .none):
+                    cw = cwNext
+                    ccw = ccw.left
+                case (.none, .some):
+                    cw = cw.right
+                    ccw = ccwNext
+                case (.none, .none):
+                    shouldContinue = false
+                }
+            } while shouldContinue
+        }
+
+        return result
+    }
+
+    static func getNext(from position: Position, facing: Facing, map: Map, edges: [Edge: Edge]) -> (position: Position, facing: Facing) {
+        let next = position[facing]
+        switch map.board[next] {
+        case .open: return (next, facing)
+        case .wall: return (position, facing)
+        case .none:
+            let edge = Edge(position: position, facing: facing)
+            let connectedTo = edges[edge]!
+            switch map.board[connectedTo.position] {
+            case .open: return (connectedTo.position, connectedTo.facing)
+            case .wall: return (position, facing)
+            case .none: fatalError()
+            }
+        }
+    }
+
+    static func run(_ source: InputData) {
+        let map = Map(source)
+        let edges = connectEdges(of: map)
+
+        var position = map.leftEdge(for: .init(x: 1, y: 1))
+        var facing = Facing.right
+        for step in map.path {
+            switch step {
+            case .turn(let direction):
+                facing = facing[keyPath: direction]
+            case .move(let count):
+                for _ in 1 ... count {
+                    let next = getNext(from: position, facing: facing, map: map, edges: edges)
+                    if next.position == position {
+                        break
+                    }
+                    position = next.position
+                    facing = next.facing
+                }
+            }
+        }
+
+        let result = 1000 * position.row + 4 * position.column + facing.value
+
+        print("Part 2 (\(source)): \(result)")
     }
 }
