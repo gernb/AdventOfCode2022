@@ -140,8 +140,38 @@ enum Part1 {
 
 enum Part2 {
     static func run(_ source: InputData) {
-//        let input = source.data
+        var scan = loadScan(source.lines)
+        var proposedDirection = [
+            (direction: \Position.up, move: \Position.north),
+            (direction: \.down, move: \.south),
+            (direction: \.left, move: \.west),
+            (direction: \.right, move: \.east),
+        ]
 
-        print("Part 2 (\(source)):")
+        var count = 0
+        var previousScan = scan
+        repeat {
+            count += 1
+            previousScan = scan
+            var proposals: [Position: [Position]] = [:]
+            for elf in scan {
+                if elf.adjacent.allSatisfy({ scan.contains($0) == false }) {
+                    continue
+                }
+                for direction in proposedDirection {
+                    if elf[keyPath: direction.direction].allSatisfy({ scan.contains($0) == false }) {
+                        proposals[elf[keyPath: direction.move], default: []] += [elf]
+                        break
+                    }
+                }
+            }
+            for proposal in proposals where proposal.value.count == 1 {
+                scan.insert(proposal.key)
+                scan.remove(proposal.value[0])
+            }
+            proposedDirection.rotateLeft()
+        } while scan != previousScan
+
+        print("Part 2 (\(source)): \(count)")
     }
 }
