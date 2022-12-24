@@ -73,14 +73,18 @@ enum Item: Character {
 struct Map: Hashable {
     var valley: [[[Item]]]
     var elves: Position
+    var destination: Position
     let exit: Position
+    let entrance: Position
 
     init(_ lines: [String]) {
         self.valley = lines.map { line in
             line.map { [Item(rawValue: $0)].compactMap { $0 } }
         }
-        self.elves = .init(x: valley[0].firstIndex(of: [])!, y: 0)
+        self.entrance = .init(x: valley[0].firstIndex(of: [])!, y: 0)
         self.exit = .init(x: valley[valley.height - 1].lastIndex(of: [])!, y: valley.height - 1)
+        self.elves = entrance
+        self.destination = exit
     }
 
     func draw() {
@@ -132,7 +136,7 @@ struct Map: Hashable {
         var state = self
         var time = 0
         while true {
-            if state.elves == state.exit {
+            if state.elves == state.destination {
                 return [(state, time)]
             }
             state = state.moveBlizzards()
@@ -201,8 +205,31 @@ enum Part1 {
 
 enum Part2 {
     static func run(_ source: InputData) {
-//        let input = source.data
+        var map = Map(source.lines)
+        let (pathForward, forwardCount) = findShortestPath(from: map) { current in
+            if current.elves == current.destination {
+                return nil
+            }
+            return current.nextStates()
+        }
+        map = pathForward.last!
+        map.destination = map.entrance
+        let (pathBack, backCount) = findShortestPath(from: map) { current in
+            if current.elves == current.destination {
+                return nil
+            }
+            return current.nextStates()
+        }
+        map = pathBack.last!
+        map.destination = map.exit
+        let (_, returnCount) = findShortestPath(from: map) { current in
+            if current.elves == current.destination {
+                return nil
+            }
+            return current.nextStates()
+        }
+        let result = forwardCount + backCount + returnCount
 
-        print("Part 2 (\(source)):")
+        print("Part 2 (\(source)): \(result)")
     }
 }
