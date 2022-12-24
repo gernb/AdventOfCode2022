@@ -71,88 +71,86 @@ enum Item: Character {
 }
 
 struct Map: Hashable {
-    var valley: [[[Item]]]
-    var elves: Position
-    var destination: Position
-    let exit: Position
+    typealias Valley = [[[Item]]]
+    let valleyStates: [Valley]
     let entrance: Position
+    let exit: Position
 
     init(_ lines: [String]) {
-        self.valley = lines.map { line in
+        let valley = lines.map { line in
             line.map { [Item(rawValue: $0)].compactMap { $0 } }
         }
+        self.valleyStates = Self.computeAllValleyStates(from: valley)
         self.entrance = .init(x: valley[0].firstIndex(of: [])!, y: 0)
         self.exit = .init(x: valley[valley.height - 1].lastIndex(of: [])!, y: valley.height - 1)
-        self.elves = entrance
-        self.destination = exit
     }
 
-    func draw() {
-        var valley = valley
-        valley[elves] = [.elves]
-        let lines = valley.map { row in
-            row.map { contents in
-                if contents.count > 1 {
-                    return "\(contents.count)"
-                } else {
-                    return String(contents.first?.rawValue ?? ".")
-                }
-            }.joined()
-        }.joined(separator: "\n")
-        print(lines)
-        print("")
-    }
-
-    func moveBlizzards() -> Self {
-        var newValley = Array(repeating: Array(repeating: [Item](), count: valley.width), count: valley.height)
-        valley.enumerated().forEach { y, row in
-            row.enumerated().forEach { x, contents in
-                let position = Position(x: x, y: y)
-                contents.forEach { item in
-                    if item == .wall {
-                        newValley[position] = [item]
-                    } else {
-                        var newPosition = position[keyPath: item.direction]
-                        if valley[newPosition]!.contains(.wall) {
-                            switch item {
-                            case .upBlizzard: newPosition = .init(x: x, y: valley.height - 2)
-                            case .downBlizzard: newPosition = .init(x: x, y: 1)
-                            case .leftBlizzard: newPosition = .init(x: valley.width - 2, y: y)
-                            case .rightBlizzard: newPosition = .init(x: 1, y: y)
-                            case .wall, .elves: fatalError()
+    static func computeAllValleyStates(from valley: Valley) -> [Valley] {
+        var result = [valley]
+        var state = valley
+        while true {
+            var nextState = Array(repeating: Array(repeating: [Item](), count: valley.width), count: valley.height)
+            state.enumerated().forEach { y, row in
+                row.enumerated().forEach { x, contents in
+                    let position = Position(x: x, y: y)
+                    contents.forEach { item in
+                        if item == .wall {
+                            nextState[position] = [item]
+                        } else {
+                            var newPosition = position[keyPath: item.direction]
+                            if state[newPosition]!.contains(.wall) {
+                                switch item {
+                                case .upBlizzard: newPosition = .init(x: x, y: valley.height - 2)
+                                case .downBlizzard: newPosition = .init(x: x, y: 1)
+                                case .leftBlizzard: newPosition = .init(x: valley.width - 2, y: y)
+                                case .rightBlizzard: newPosition = .init(x: 1, y: y)
+                                case .wall, .elves: fatalError()
+                                }
                             }
+                            nextState[newPosition]! += [item]
                         }
-                        newValley[newPosition]! += [item]
                     }
                 }
             }
+            if nextState == valley {
+                break
+            } else {
+                result.append(nextState)
+                state = nextState
+            }
         }
-        var next = self
-        next.valley = newValley
-        return next
+        return result
     }
+}
 
-    func nextStates() -> [(Self, Int)] {
-        var state = self
-        var time = 0
-        while true {
-            if state.elves == state.destination {
-                return [(state, time)]
+func draw(valley: Map.Valley, elvesAt: Position) {
+    var valley = valley
+    valley[elvesAt] = [.elves]
+    let lines = valley.map { row in
+        row.map { contents in
+            if contents.count > 1 {
+                return "\(contents.count)"
+            } else {
+                return String(contents.first?.rawValue ?? ".")
             }
-            state = state.moveBlizzards()
-            time += 1
-            let result = ([state.elves] + state.elves.adjacent).compactMap { next -> Map? in
-                guard let contents = state.valley[next], contents.isEmpty else {
-                    return nil
-                }
-                var nextState = state
-                nextState.elves = next
-                return nextState
+        }.joined()
+    }.joined(separator: "\n")
+    print(lines)
+    print("")
+}
+
+struct State: Hashable {
+    let elves: Position
+    let time: Int
+
+    func nextStates(with map: Map) -> [State] {
+        let time = time + 1
+        let valley = map.valleyStates[time % map.valleyStates.count]
+        return (elves.adjacent + [elves]).compactMap { position in
+            guard let contents = valley[position], contents.isEmpty else {
+                return nil
             }
-            if result.isEmpty || result.count > 1 {
-                return result.map { ($0, time) }
-            }
-            state = result[0]
+            return .init(elves: position, time: time)
         }
     }
 }
@@ -169,14 +167,13 @@ func findShortestPath<Node: Hashable>(from start: Node, using getNextNodes: ((No
         }
         let newPath = path + [node]
         for (nextNode, cost) in nextNodes {
-            let newCost = currentCost + cost
-            if let previousCost = visited[nextNode], previousCost <= newCost {
+            if let previousCost = visited[nextNode], previousCost <= cost {
                 continue
             }
-            if let queued = queue[nextNode], queued.cost <= newCost {
+            if let queued = queue[nextNode], queued.cost <= cost {
                 continue
             }
-            queue[nextNode] = (newPath, newCost)
+            queue[nextNode] = (newPath, cost)
         }
         visited[node] = currentCost
     }
@@ -190,14 +187,14 @@ func findShortestPath<Node: Hashable>(from start: Node, using getNextNodes: ((No
 enum Part1 {
     static func run(_ source: InputData) {
         let map = Map(source.lines)
-        let path = findShortestPath(from: map) { current in
-            if current.elves == current.exit {
+        let (path, _) = findShortestPath(from: State(elves: map.entrance, time: 0)) { current in
+            if current.elves == map.exit {
                 return nil
             }
-            return current.nextStates()
+            return current.nextStates(with: map).map { ($0, $0.elves.distance(to: map.exit) + $0.time) }
         }
 
-        print("Part 1 (\(source)): \(path.1)")
+        print("Part 1 (\(source)): \(path.last!.time)")
     }
 }
 
@@ -205,31 +202,26 @@ enum Part1 {
 
 enum Part2 {
     static func run(_ source: InputData) {
-        var map = Map(source.lines)
-        let (pathForward, forwardCount) = findShortestPath(from: map) { current in
-            if current.elves == current.destination {
+        let map = Map(source.lines)
+        let (firstTrip, _) = findShortestPath(from: State(elves: map.entrance, time: 0)) { current in
+            if current.elves == map.exit {
                 return nil
             }
-            return current.nextStates()
+            return current.nextStates(with: map).map { ($0, $0.elves.distance(to: map.exit) + $0.time) }
         }
-        map = pathForward.last!
-        map.destination = map.entrance
-        let (pathBack, backCount) = findShortestPath(from: map) { current in
-            if current.elves == current.destination {
+        let (secondTrip, _) = findShortestPath(from: firstTrip.last!) { current in
+            if current.elves == map.entrance {
                 return nil
             }
-            return current.nextStates()
+            return current.nextStates(with: map).map { ($0, $0.elves.distance(to: map.entrance) + $0.time) }
         }
-        map = pathBack.last!
-        map.destination = map.exit
-        let (_, returnCount) = findShortestPath(from: map) { current in
-            if current.elves == current.destination {
+        let (thirdTrip, _) = findShortestPath(from: secondTrip.last!) { current in
+            if current.elves == map.exit {
                 return nil
             }
-            return current.nextStates()
+            return current.nextStates(with: map).map { ($0, $0.elves.distance(to: map.exit) + $0.time) }
         }
-        let result = forwardCount + backCount + returnCount
 
-        print("Part 2 (\(source)): \(result)")
+        print("Part 2 (\(source)): \(thirdTrip.last!.time)")
     }
 }
