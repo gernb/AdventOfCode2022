@@ -155,27 +155,27 @@ struct State: Hashable {
     }
 }
 
-func findShortestPath<Node: Hashable>(from start: Node, using getNextNodes: ((Node) -> [(node: Node, cost: Int)]?)) -> ([Node], Int) {
+func findShortestPath<Node: Hashable>(from start: Node, using getNextNodes: ((Node) -> [Node]?)) -> [Node] {
     typealias Path = [Node]
-    var visited: [Node: Int] = [:]
-    var queue: [Node: (path: Path, cost: Int)] = [start: ([], 0)]
+    var visited: [Node: Path] = [:]
+    var queue: [(node: Node, path: Path)] = [(start, [])]
 
-    while let (node, (path, currentCost)) = queue.min(by: { $0.value.cost < $1.value.cost }) {
-        queue.removeValue(forKey: node)
+    while queue.isEmpty == false {
+        var (node, path) = queue.removeFirst()
         guard let nextNodes = getNextNodes(node) else {
-            return (path + [node], currentCost)
+            return path + [node]
         }
-        let newPath = path + [node]
-        for (nextNode, cost) in nextNodes {
-            if let previousCost = visited[nextNode], previousCost <= cost {
+        path.append(node)
+        for nextNode in nextNodes {
+            if let previousPath = visited[nextNode], previousPath.count <= path.count {
                 continue
             }
-            if let queued = queue[nextNode], queued.cost <= cost {
+            if queue.contains(where: { $0.node == nextNode } ) {
                 continue
             }
-            queue[nextNode] = (newPath, cost)
+            queue.append((nextNode, path))
         }
-        visited[node] = currentCost
+        visited[node] = path
     }
 
     // No possible path exists
@@ -187,11 +187,8 @@ func findShortestPath<Node: Hashable>(from start: Node, using getNextNodes: ((No
 enum Part1 {
     static func run(_ source: InputData) {
         let map = Map(source.lines)
-        let (path, _) = findShortestPath(from: State(elves: map.entrance, time: 0)) { current in
-            if current.elves == map.exit {
-                return nil
-            }
-            return current.nextStates(with: map).map { ($0, $0.elves.distance(to: map.exit) + $0.time) }
+        let path = findShortestPath(from: State(elves: map.entrance, time: 0)) { current in
+            current.elves == map.exit ? nil : current.nextStates(with: map)
         }
 
         print("Part 1 (\(source)): \(path.last!.time)")
@@ -203,23 +200,14 @@ enum Part1 {
 enum Part2 {
     static func run(_ source: InputData) {
         let map = Map(source.lines)
-        let (firstTrip, _) = findShortestPath(from: State(elves: map.entrance, time: 0)) { current in
-            if current.elves == map.exit {
-                return nil
-            }
-            return current.nextStates(with: map).map { ($0, $0.elves.distance(to: map.exit) + $0.time) }
+        let firstTrip = findShortestPath(from: State(elves: map.entrance, time: 0)) { current in
+            current.elves == map.exit ? nil : current.nextStates(with: map)
         }
-        let (secondTrip, _) = findShortestPath(from: firstTrip.last!) { current in
-            if current.elves == map.entrance {
-                return nil
-            }
-            return current.nextStates(with: map).map { ($0, $0.elves.distance(to: map.entrance) + $0.time) }
+        let secondTrip = findShortestPath(from: firstTrip.last!) { current in
+            current.elves == map.entrance ? nil : current.nextStates(with: map)
         }
-        let (thirdTrip, _) = findShortestPath(from: secondTrip.last!) { current in
-            if current.elves == map.exit {
-                return nil
-            }
-            return current.nextStates(with: map).map { ($0, $0.elves.distance(to: map.exit) + $0.time) }
+        let thirdTrip = findShortestPath(from: secondTrip.last!) { current in
+            current.elves == map.exit ? nil : current.nextStates(with: map)
         }
 
         print("Part 2 (\(source)): \(thirdTrip.last!.time)")
