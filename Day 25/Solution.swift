@@ -21,17 +21,22 @@ enum Digits: Character {
         case .doubleMinus: return -2
         }
     }
-}
 
-func pow(_ base: Int, _ power: Int) -> Int {
-    if power == 0 { return 1 }
-    if power == 1 { return base }
-    return (2...power).reduce(base, { result, _ in result * base })
+    init?(value: Int) {
+        switch value {
+        case 0: self = .zero
+        case 1: self = .one
+        case 2: self = .two
+        case 3: self = .doubleMinus
+        case 4: self = .minus
+        default: return nil
+        }
+    }
 }
 
 func snafuToInt(_ value: String) -> Int {
-    value.reversed().enumerated().reduce(0) {
-        $0 + Digits(rawValue: $1.element)!.value * pow(5, $1.offset)
+    value.reduce(0) {
+        $0 * 5 + Digits(rawValue: $1)!.value
     }
 }
 
@@ -42,21 +47,9 @@ func intToSnafu(_ value: Int) -> String {
     var value = value
     var result: [Digits] = []
     while value > 0 {
-        var (q, r) = value.quotientAndRemainder(dividingBy: 5)
-        switch r {
-        case 0: result.append(.zero)
-        case 1: result.append(.one)
-        case 2: result.append(.two)
-        case 3:
-            result.append(.doubleMinus)
-            q += 1
-        case 4:
-            result.append(.minus)
-            q += 1
-        default:
-            fatalError()
-        }
-        value = q
+        let (q, r) = value.quotientAndRemainder(dividingBy: 5)
+        result.append(Digits(value: r)!)
+        value = r > 2 ? q + 1 : q
     }
     return String(result.reversed().map(\.rawValue))
 }
