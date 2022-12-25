@@ -61,6 +61,12 @@ func intToSnafu(_ value: Int) -> [Digits] {
     return result.reversed()
 }
 
+extension String {
+    init(_ snafu: [Digits]) {
+        self = String(snafu.map(\.rawValue))
+    }
+}
+
 // MARK: - Part 1
 
 enum Part1 {
@@ -69,13 +75,12 @@ enum Part1 {
         let values = snafuValues.map(snafuToInt(_:))
 
 //        ((1 ... 10) + [15, 20, 2022, 12345, 314159265]).forEach {
-//            let v = intToSnafu($0)
-//            print(String(v.map(\.rawValue)))
+//            print(String(intToSnafu($0)))
 //        }
 
-        let result = intToSnafu(values.reduce(0, +))
+        let result = String(intToSnafu(values.reduce(0, +)))
 
-        print("Part 1 (\(source)): \(String(result.map(\.rawValue)))")
+        print("Part 1 (\(source)): \(result)")
     }
 }
 
