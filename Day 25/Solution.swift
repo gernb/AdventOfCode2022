@@ -29,15 +29,15 @@ func pow(_ base: Int, _ power: Int) -> Int {
     return (2...power).reduce(base, { result, _ in result * base })
 }
 
-func snafuToInt(_ value: [Digits]) -> Int {
+func snafuToInt(_ value: String) -> Int {
     value.reversed().enumerated().reduce(0) {
-        $0 + $1.element.value * pow(5, $1.offset)
+        $0 + Digits(rawValue: $1.element)!.value * pow(5, $1.offset)
     }
 }
 
-func intToSnafu(_ value: Int) -> [Digits] {
+func intToSnafu(_ value: Int) -> String {
     if value == 0 {
-        return [.zero]
+        return "0"
     }
     var value = value
     var result: [Digits] = []
@@ -58,27 +58,16 @@ func intToSnafu(_ value: Int) -> [Digits] {
         }
         value = q
     }
-    return result.reversed()
-}
-
-extension String {
-    init(_ snafu: [Digits]) {
-        self = String(snafu.map(\.rawValue))
-    }
+    return String(result.reversed().map(\.rawValue))
 }
 
 // MARK: - Part 1
 
 enum Part1 {
     static func run(_ source: InputData) {
-        let snafuValues = source.lines.map { $0.compactMap(Digits.init(rawValue:)) }
-        let values = snafuValues.map(snafuToInt(_:))
-
-//        ((1 ... 10) + [15, 20, 2022, 12345, 314159265]).forEach {
-//            print(String(intToSnafu($0)))
-//        }
-
-        let result = String(intToSnafu(values.reduce(0, +)))
+        let values = source.lines.map(snafuToInt(_:))
+        let sum = values.reduce(0, +)
+        let result = intToSnafu(sum)
 
         print("Part 1 (\(source)): \(result)")
     }
